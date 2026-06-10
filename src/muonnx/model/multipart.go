@@ -64,6 +64,9 @@ func (m *Multipart) Deps() []muonnx.Node { return nil }
 func (m *Multipart) Build() error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
+	if m.sessions != nil {
+		return nil // idempotent: matches the build graph's build-once semantics
+	}
 	m.sessions = make(map[string]*ort.DynamicAdvancedSession, len(m.parts))
 	m.io = make(map[string][2][]string, len(m.parts))
 	for key, p := range m.parts {
@@ -118,7 +121,10 @@ func (m *Multipart) Session(part string) *ort.DynamicAdvancedSession {
 	return m.sessions[part]
 }
 
-// Has reports whether a part built successfully (e.g. an optional KV-cache graph).
+// Has reports whether the model includes this part. Build is all-or-nothing, so
+// after a successful Build every declared part is present; optionality is handled
+// by the caller choosing which parts to declare (e.g. include a KV-cache graph
+// only when muonnx.Available reports it). An unknown key returns false.
 func (m *Multipart) Has(part string) bool {
 	m.mu.Lock()
 	defer m.mu.Unlock()

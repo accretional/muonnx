@@ -59,6 +59,12 @@ func (s *Session) Deps() []muonnx.Node { return nil }
 // Build resolves the weights, opens the session with its execution provider,
 // discovers I/O names, and registers the model in the catalog.
 func (s *Session) Build() error {
+	s.mu.Lock()
+	built := s.sess != nil
+	s.mu.Unlock()
+	if built {
+		return nil // idempotent: matches the build graph's build-once semantics
+	}
 	d, err := s.load()
 	if err != nil {
 		return err
@@ -91,8 +97,17 @@ func (s *Session) Build() error {
 }
 
 // Inputs and Outputs return the graph's tensor names (valid after Build).
-func (s *Session) Inputs() []string  { return append([]string(nil), s.in...) }
-func (s *Session) Outputs() []string { return append([]string(nil), s.out...) }
+func (s *Session) Inputs() []string {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return append([]string(nil), s.in...)
+}
+
+func (s *Session) Outputs() []string {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return append([]string(nil), s.out...)
+}
 
 // Run executes the graph: inputs maps every input name to a Tensor; the result
 // maps every output name to a Tensor (data copied out, ORT values released).
@@ -127,13 +142,22 @@ func (s *Session) Run(inputs map[string]Tensor) (map[string]Tensor, error) {
 	}
 
 	outs := make([]ort.Value, len(s.out)) // nil entries => ORT auto-allocates
-	if err := s.sess.Run(ins, outs); err != nil {
-		return nil, fmt.Errorf("muonnx/model: session %q run: %w", s.name, err)
+	runErr := s.sess.Run(ins, outs)
+	// Collect every allocated output for cleanup BEFORE checking the error or
+	// reading: ORT may have allocated some outputs even when Run (or its internal
+	// value conversion) ultimately errors, and a readValue failure below must not
+	// strand the remaining outputs.
+	for _, v := range outs {
+		if v != nil {
+			toDestroy = append(toDestroy, v)
+		}
+	}
+	if runErr != nil {
+		return nil, fmt.Errorf("muonnx/model: session %q run: %w", s.name, runErr)
 	}
 
 	res := make(map[string]Tensor, len(s.out))
 	for i, name := range s.out {
-		toDestroy = append(toDestroy, outs[i])
 		t, err := readValue(outs[i])
 		if err != nil {
 			return nil, fmt.Errorf("muonnx/model: output %q: %w", name, err)

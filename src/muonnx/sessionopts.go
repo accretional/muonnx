@@ -75,7 +75,14 @@ func SessionOptionsFor(providers ...string) (*ort.SessionOptions, error) {
 		}
 		base := cacheBase()
 		if td := ensureDir(filepath.Join(base, "tmp")); td != "" {
-			os.Setenv("TMPDIR", td) // stable working dir → consistent CoreML cache key across processes
+			// NOTE: this redirects the WHOLE process's $TMPDIR (every later
+			// os.TempDir / os.CreateTemp, including other libraries). It is
+			// deliberate and required: ORT 1.22's CoreML cache reuse keys on
+			// $TMPDIR, so a stable value is the only way to make the cross-process
+			// compile cache hit. We always set it (rather than only-when-unset) so
+			// reuse is reliable regardless of the launching shell's $TMPDIR, which
+			// varies by login context. Scope it with $MUONNX_CACHE if undesired.
+			os.Setenv("TMPDIR", td)
 		}
 		if dir := ensureDir(filepath.Join(base, "coreml")); dir != "" {
 			coremlOpts["ModelCacheDirectory"] = dir
@@ -104,6 +111,10 @@ func cacheBase() string {
 	if d := os.Getenv("MUONNX_CACHE"); d != "" {
 		return absOr(d)
 	}
+	// Co-locate with an explicitly-configured weight source. We skip the default
+	// "/onnx" sentinel: it's commonly a read-only mount or absent on dev hosts, so
+	// falling through to the executable dir is more reliable there. (ensureDir
+	// degrades gracefully either way if the chosen dir isn't writable.)
 	if ws := Environment().WeightSourcePath; ws != "" && ws != DefaultWeightSourcePath {
 		return filepath.Join(absOr(ws), ".muonnx-cache")
 	}
