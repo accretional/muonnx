@@ -21,6 +21,7 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 
 	"github.com/accretional/muonnx/models/add1"
+	"github.com/accretional/muonnx/models/addtwo"
 	"github.com/accretional/muonnx/models/mult0"
 	pb "github.com/accretional/muonnx/proto/muonnxpb"
 	muonnx "github.com/accretional/muonnx/src/muonnx"
@@ -129,6 +130,28 @@ func main() {
 	}
 	fmt.Println("PASS: random input -> all 1s through muonnx server (mult_0 -> add_1)")
 
+	// --- model.Session: a multi-input graph (Y = A + B) -------------------
+	// Exercises the single-graph, multi-IO wrapper directly (no single-in/out
+	// restriction, ORT tensor plumbing handled by Session).
+	sess := model.NewSession(addtwo.Load)
+	if err := sess.Build(); err != nil {
+		log.Fatalf("eval: build add_two session: %v", err)
+	}
+	defer sess.Close()
+	sout, err := sess.Run(map[string]model.Tensor{
+		"A": model.F32([]int64{3}, []float32{1, 2, 3}),
+		"B": model.F32([]int64{3}, []float32{10, 20, 30}),
+	})
+	if err != nil {
+		log.Fatalf("eval: add_two Run: %v", err)
+	}
+	y := sout["Y"].F32
+	fmt.Printf("Session add_two: A=[1 2 3] B=[10 20 30] -> Y=%v (in=%v out=%v)\n", y, sess.Inputs(), sess.Outputs())
+	if len(y) != 3 || y[0] != 11 || y[1] != 22 || y[2] != 33 {
+		log.Fatalf("FAIL: add_two expected [11 22 33], got %v", y)
+	}
+	fmt.Println("PASS: multi-input model.Session (add_two)")
+
 	// --- weight server: ListModels + streaming Fetch ----------------------
 	wc := pb.NewONNXRuntimeClient(conn)
 	listed, err := listModels(wc)
@@ -140,7 +163,7 @@ func main() {
 		log.Fatalf("eval: Fetch: %v", err)
 	}
 	fmt.Printf("weight server: ListModels=%v, Fetch(mult_0)=%d bytes\n", listed, nbytes)
-	if len(listed) != 2 || nbytes == 0 {
+	if len(listed) < 2 || nbytes == 0 {
 		log.Fatalf("FAIL: weight server returned models=%v bytes=%d", listed, nbytes)
 	}
 	fmt.Println("PASS: weight server ListModels + streaming Fetch")

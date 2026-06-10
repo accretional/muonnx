@@ -35,8 +35,9 @@ const (
 
 func main() {
 	out := map[string]*onnxpb.ModelProto{
-		"models/mult0/onnx/mult_0.onnx": binaryScalarModel("Mul", "zero", 0),
-		"models/add1/onnx/add_1.onnx":   binaryScalarModel("Add", "one", 1),
+		"models/mult0/onnx/mult_0.onnx":   binaryScalarModel("Mul", "zero", 0),
+		"models/add1/onnx/add_1.onnx":     binaryScalarModel("Add", "one", 1),
+		"models/addtwo/onnx/add_two.onnx": twoInputModel("Add"), // Y = A + B (multi-IO Session demo)
 	}
 	for path, m := range out {
 		if err := writeModel(path, m); err != nil {
@@ -85,6 +86,41 @@ func binaryScalarModel(opType, constName string, constVal float32) *onnxpb.Model
 			Initializer: []*onnxpb.TensorProto{scalar},
 			Input:       []*onnxpb.ValueInfoProto{vec("X")},
 			Output:      []*onnxpb.ValueInfoProto{vec("Y")},
+		},
+	}
+}
+
+// twoInputModel builds Y = op(A, B) over two 1-D float vectors of dynamic length
+// N — a genuinely multi-input graph for exercising model.Session.
+func twoInputModel(opType string) *onnxpb.ModelProto {
+	vec := func(name string) *onnxpb.ValueInfoProto {
+		return &onnxpb.ValueInfoProto{
+			Name: proto.String(name),
+			Type: &onnxpb.TypeProto{Value: &onnxpb.TypeProto_TensorType{
+				TensorType: &onnxpb.TypeProto_Tensor{
+					ElemType: proto.Int32(floatDType),
+					Shape: &onnxpb.TensorShapeProto{Dim: []*onnxpb.TensorShapeProto_Dimension{
+						{Value: &onnxpb.TensorShapeProto_Dimension_DimParam{DimParam: "N"}},
+					}},
+				},
+			}},
+		}
+	}
+	node := &onnxpb.NodeProto{
+		Name:   proto.String(opType + "_node"),
+		OpType: proto.String(opType),
+		Input:  []string{"A", "B"},
+		Output: []string{"Y"},
+	}
+	return &onnxpb.ModelProto{
+		IrVersion:    proto.Int64(irVersion),
+		ProducerName: proto.String("muonnx-genmodels"),
+		OpsetImport:  []*onnxpb.OperatorSetIdProto{{Domain: proto.String(""), Version: proto.Int64(opsetVer)}},
+		Graph: &onnxpb.GraphProto{
+			Name:   proto.String(opType + "_two_graph"),
+			Node:   []*onnxpb.NodeProto{node},
+			Input:  []*onnxpb.ValueInfoProto{vec("A"), vec("B")},
+			Output: []*onnxpb.ValueInfoProto{vec("Y")},
 		},
 	}
 }
