@@ -11,7 +11,7 @@
 // versions:
 // - protoc-gen-go-grpc v1.6.1
 // - protoc             v7.34.1
-// source: onnx.proto
+// source: muonnx.proto
 
 package muonnxpb
 
@@ -176,7 +176,7 @@ var ONNXRuntime_ServiceDesc = grpc.ServiceDesc{
 			ServerStreams: true,
 		},
 	},
-	Metadata: "onnx.proto",
+	Metadata: "muonnx.proto",
 }
 
 const (
@@ -284,5 +284,5 @@ var Inference_ServiceDesc = grpc.ServiceDesc{
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "onnx.proto",
+	Metadata: "muonnx.proto",
 }

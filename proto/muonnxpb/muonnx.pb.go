@@ -11,7 +11,7 @@
 // versions:
 // 	protoc-gen-go v1.36.11
 // 	protoc        v7.34.1
-// source: onnx.proto
+// source: muonnx.proto
 
 package muonnxpb
 
@@ -66,11 +66,11 @@ func (x Precision) String() string {
 }
 
 func (Precision) Descriptor() protoreflect.EnumDescriptor {
-	return file_onnx_proto_enumTypes[0].Descriptor()
+	return file_muonnx_proto_enumTypes[0].Descriptor()
 }
 
 func (Precision) Type() protoreflect.EnumType {
-	return &file_onnx_proto_enumTypes[0]
+	return &file_muonnx_proto_enumTypes[0]
 }
 
 func (x Precision) Number() protoreflect.EnumNumber {
@@ -79,7 +79,7 @@ func (x Precision) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use Precision.Descriptor instead.
 func (Precision) EnumDescriptor() ([]byte, []int) {
-	return file_onnx_proto_rawDescGZIP(), []int{0}
+	return file_muonnx_proto_rawDescGZIP(), []int{0}
 }
 
 // ONNXWeightSource is where weights are provisioned at instance/container scope —
@@ -94,7 +94,7 @@ type ONNXWeightSource struct {
 
 func (x *ONNXWeightSource) Reset() {
 	*x = ONNXWeightSource{}
-	mi := &file_onnx_proto_msgTypes[0]
+	mi := &file_muonnx_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -106,7 +106,7 @@ func (x *ONNXWeightSource) String() string {
 func (*ONNXWeightSource) ProtoMessage() {}
 
 func (x *ONNXWeightSource) ProtoReflect() protoreflect.Message {
-	mi := &file_onnx_proto_msgTypes[0]
+	mi := &file_muonnx_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -119,7 +119,7 @@ func (x *ONNXWeightSource) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ONNXWeightSource.ProtoReflect.Descriptor instead.
 func (*ONNXWeightSource) Descriptor() ([]byte, []int) {
-	return file_onnx_proto_rawDescGZIP(), []int{0}
+	return file_muonnx_proto_rawDescGZIP(), []int{0}
 }
 
 func (x *ONNXWeightSource) GetPath() string {
@@ -142,7 +142,7 @@ type ONNXModel struct {
 
 func (x *ONNXModel) Reset() {
 	*x = ONNXModel{}
-	mi := &file_onnx_proto_msgTypes[1]
+	mi := &file_muonnx_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -154,7 +154,7 @@ func (x *ONNXModel) String() string {
 func (*ONNXModel) ProtoMessage() {}
 
 func (x *ONNXModel) ProtoReflect() protoreflect.Message {
-	mi := &file_onnx_proto_msgTypes[1]
+	mi := &file_muonnx_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -167,7 +167,7 @@ func (x *ONNXModel) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ONNXModel.ProtoReflect.Descriptor instead.
 func (*ONNXModel) Descriptor() ([]byte, []int) {
-	return file_onnx_proto_rawDescGZIP(), []int{1}
+	return file_muonnx_proto_rawDescGZIP(), []int{1}
 }
 
 func (x *ONNXModel) GetName() string {
@@ -212,7 +212,7 @@ type ONNXRuntimeConfig struct {
 
 func (x *ONNXRuntimeConfig) Reset() {
 	*x = ONNXRuntimeConfig{}
-	mi := &file_onnx_proto_msgTypes[2]
+	mi := &file_muonnx_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -224,7 +224,7 @@ func (x *ONNXRuntimeConfig) String() string {
 func (*ONNXRuntimeConfig) ProtoMessage() {}
 
 func (x *ONNXRuntimeConfig) ProtoReflect() protoreflect.Message {
-	mi := &file_onnx_proto_msgTypes[2]
+	mi := &file_muonnx_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -237,7 +237,7 @@ func (x *ONNXRuntimeConfig) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ONNXRuntimeConfig.ProtoReflect.Descriptor instead.
 func (*ONNXRuntimeConfig) Descriptor() ([]byte, []int) {
-	return file_onnx_proto_rawDescGZIP(), []int{2}
+	return file_muonnx_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *ONNXRuntimeConfig) GetModels() []*ONNXModel {
@@ -283,7 +283,7 @@ type ONNXEnvironmentConfig struct {
 
 func (x *ONNXEnvironmentConfig) Reset() {
 	*x = ONNXEnvironmentConfig{}
-	mi := &file_onnx_proto_msgTypes[3]
+	mi := &file_muonnx_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -295,7 +295,7 @@ func (x *ONNXEnvironmentConfig) String() string {
 func (*ONNXEnvironmentConfig) ProtoMessage() {}
 
 func (x *ONNXEnvironmentConfig) ProtoReflect() protoreflect.Message {
-	mi := &file_onnx_proto_msgTypes[3]
+	mi := &file_muonnx_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -308,7 +308,7 @@ func (x *ONNXEnvironmentConfig) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ONNXEnvironmentConfig.ProtoReflect.Descriptor instead.
 func (*ONNXEnvironmentConfig) Descriptor() ([]byte, []int) {
-	return file_onnx_proto_rawDescGZIP(), []int{3}
+	return file_muonnx_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *ONNXEnvironmentConfig) GetOnnxruntimeLib() string {
@@ -347,7 +347,7 @@ type ONNXRequest struct {
 
 func (x *ONNXRequest) Reset() {
 	*x = ONNXRequest{}
-	mi := &file_onnx_proto_msgTypes[4]
+	mi := &file_muonnx_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -359,7 +359,7 @@ func (x *ONNXRequest) String() string {
 func (*ONNXRequest) ProtoMessage() {}
 
 func (x *ONNXRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_onnx_proto_msgTypes[4]
+	mi := &file_muonnx_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -372,7 +372,7 @@ func (x *ONNXRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ONNXRequest.ProtoReflect.Descriptor instead.
 func (*ONNXRequest) Descriptor() ([]byte, []int) {
-	return file_onnx_proto_rawDescGZIP(), []int{4}
+	return file_muonnx_proto_rawDescGZIP(), []int{4}
 }
 
 type ONNXChunk struct {
@@ -384,7 +384,7 @@ type ONNXChunk struct {
 
 func (x *ONNXChunk) Reset() {
 	*x = ONNXChunk{}
-	mi := &file_onnx_proto_msgTypes[5]
+	mi := &file_muonnx_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -396,7 +396,7 @@ func (x *ONNXChunk) String() string {
 func (*ONNXChunk) ProtoMessage() {}
 
 func (x *ONNXChunk) ProtoReflect() protoreflect.Message {
-	mi := &file_onnx_proto_msgTypes[5]
+	mi := &file_muonnx_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -409,7 +409,7 @@ func (x *ONNXChunk) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ONNXChunk.ProtoReflect.Descriptor instead.
 func (*ONNXChunk) Descriptor() ([]byte, []int) {
-	return file_onnx_proto_rawDescGZIP(), []int{5}
+	return file_muonnx_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *ONNXChunk) GetContent() []byte {
@@ -430,7 +430,7 @@ type Tensor struct {
 
 func (x *Tensor) Reset() {
 	*x = Tensor{}
-	mi := &file_onnx_proto_msgTypes[6]
+	mi := &file_muonnx_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -442,7 +442,7 @@ func (x *Tensor) String() string {
 func (*Tensor) ProtoMessage() {}
 
 func (x *Tensor) ProtoReflect() protoreflect.Message {
-	mi := &file_onnx_proto_msgTypes[6]
+	mi := &file_muonnx_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -455,7 +455,7 @@ func (x *Tensor) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Tensor.ProtoReflect.Descriptor instead.
 func (*Tensor) Descriptor() ([]byte, []int) {
-	return file_onnx_proto_rawDescGZIP(), []int{6}
+	return file_muonnx_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *Tensor) GetShape() []int64 {
@@ -472,12 +472,11 @@ func (x *Tensor) GetData() []float32 {
 	return nil
 }
 
-var File_onnx_proto protoreflect.FileDescriptor
+var File_muonnx_proto protoreflect.FileDescriptor
 
-const file_onnx_proto_rawDesc = "" +
+const file_muonnx_proto_rawDesc = "" +
 	"\n" +
-	"\n" +
-	"onnx.proto\x12\x06muonnx\"&\n" +
+	"\fmuonnx.proto\x12\x06muonnx\"&\n" +
 	"\x10ONNXWeightSource\x12\x12\n" +
 	"\x04path\x18\x01 \x01(\tR\x04path\"\x81\x01\n" +
 	"\tONNXModel\x12\x12\n" +
@@ -514,20 +513,20 @@ const file_onnx_proto_rawDesc = "" +
 	"\x03Run\x12\x0e.muonnx.Tensor\x1a\x0e.muonnx.TensorB.Z,github.com/accretional/muonnx/proto/muonnxpbb\x06proto3"
 
 var (
-	file_onnx_proto_rawDescOnce sync.Once
-	file_onnx_proto_rawDescData []byte
+	file_muonnx_proto_rawDescOnce sync.Once
+	file_muonnx_proto_rawDescData []byte
 )
 
-func file_onnx_proto_rawDescGZIP() []byte {
-	file_onnx_proto_rawDescOnce.Do(func() {
-		file_onnx_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_onnx_proto_rawDesc), len(file_onnx_proto_rawDesc)))
+func file_muonnx_proto_rawDescGZIP() []byte {
+	file_muonnx_proto_rawDescOnce.Do(func() {
+		file_muonnx_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_muonnx_proto_rawDesc), len(file_muonnx_proto_rawDesc)))
 	})
-	return file_onnx_proto_rawDescData
+	return file_muonnx_proto_rawDescData
 }
 
-var file_onnx_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_onnx_proto_msgTypes = make([]protoimpl.MessageInfo, 7)
-var file_onnx_proto_goTypes = []any{
+var file_muonnx_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
+var file_muonnx_proto_msgTypes = make([]protoimpl.MessageInfo, 7)
+var file_muonnx_proto_goTypes = []any{
 	(Precision)(0),                // 0: muonnx.Precision
 	(*ONNXWeightSource)(nil),      // 1: muonnx.ONNXWeightSource
 	(*ONNXModel)(nil),             // 2: muonnx.ONNXModel
@@ -537,7 +536,7 @@ var file_onnx_proto_goTypes = []any{
 	(*ONNXChunk)(nil),             // 6: muonnx.ONNXChunk
 	(*Tensor)(nil),                // 7: muonnx.Tensor
 }
-var file_onnx_proto_depIdxs = []int32{
+var file_muonnx_proto_depIdxs = []int32{
 	0, // 0: muonnx.ONNXModel.precision:type_name -> muonnx.Precision
 	2, // 1: muonnx.ONNXRuntimeConfig.models:type_name -> muonnx.ONNXModel
 	1, // 2: muonnx.ONNXRuntimeConfig.weight_source:type_name -> muonnx.ONNXWeightSource
@@ -556,27 +555,27 @@ var file_onnx_proto_depIdxs = []int32{
 	0, // [0:5] is the sub-list for field type_name
 }
 
-func init() { file_onnx_proto_init() }
-func file_onnx_proto_init() {
-	if File_onnx_proto != nil {
+func init() { file_muonnx_proto_init() }
+func file_muonnx_proto_init() {
+	if File_muonnx_proto != nil {
 		return
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
-			RawDescriptor: unsafe.Slice(unsafe.StringData(file_onnx_proto_rawDesc), len(file_onnx_proto_rawDesc)),
+			RawDescriptor: unsafe.Slice(unsafe.StringData(file_muonnx_proto_rawDesc), len(file_muonnx_proto_rawDesc)),
 			NumEnums:      1,
 			NumMessages:   7,
 			NumExtensions: 0,
 			NumServices:   2,
 		},
-		GoTypes:           file_onnx_proto_goTypes,
-		DependencyIndexes: file_onnx_proto_depIdxs,
-		EnumInfos:         file_onnx_proto_enumTypes,
-		MessageInfos:      file_onnx_proto_msgTypes,
+		GoTypes:           file_muonnx_proto_goTypes,
+		DependencyIndexes: file_muonnx_proto_depIdxs,
+		EnumInfos:         file_muonnx_proto_enumTypes,
+		MessageInfos:      file_muonnx_proto_msgTypes,
 	}.Build()
-	File_onnx_proto = out.File
-	file_onnx_proto_goTypes = nil
-	file_onnx_proto_depIdxs = nil
+	File_muonnx_proto = out.File
+	file_muonnx_proto_goTypes = nil
+	file_muonnx_proto_depIdxs = nil
 }
