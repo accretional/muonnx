@@ -49,7 +49,8 @@ func SessionOptionsFor(providers ...string) (*ort.SessionOptions, error) {
 	e := Environment()
 	coreml := e.OS == "darwin" && hasProvider(providers, "coreml")
 	openvino := e.OS == "linux" && hasProvider(providers, "openvino")
-	if !coreml && !openvino && e.IntraOpThreads == 0 && e.InterOpThreads == 0 {
+	cuda := e.OS == "linux" && hasProvider(providers, "cuda")
+	if !coreml && !openvino && !cuda && e.IntraOpThreads == 0 && e.InterOpThreads == 0 {
 		return nil, nil // nothing to configure: use ORT's CPU defaults
 	}
 	opts, err := ort.NewSessionOptions()
@@ -124,7 +125,47 @@ func SessionOptionsFor(providers ...string) (*ort.SessionOptions, error) {
 				"Needs an onnxruntime built with OpenVINO + the OpenVINO runtime libs.", err)
 		}
 	}
+	if cuda {
+		// CUDA (NVIDIA) EP. Best-effort: a stock CPU-only libonnxruntime lacks it,
+		// so this errors unless a CUDA-enabled ORT build + the CUDA/cuDNN runtime are
+		// present (the GPU image); on failure we log and fall back to CPU. Unlike
+		// CoreML it handles dynamic shapes, so it's the target for the TTS
+		// transformers (t3-llm AR loop, s3gen) and fp16 inference on GPU.
+		if co, cerr := ort.NewCUDAProviderOptions(); cerr != nil {
+			log.Printf("muonnx: CUDA provider options unavailable (%v); using CPU.", cerr)
+		} else {
+			if m := cudaOptions(); len(m) > 0 {
+				_ = co.Update(m)
+			}
+			if err := opts.AppendExecutionProviderCUDA(co); err != nil {
+				log.Printf("muonnx: CUDA EP unavailable (%v); using CPU. "+
+					"Needs an onnxruntime built with CUDA + the CUDA/cuDNN runtime libs.", err)
+			}
+			co.Destroy()
+		}
+	}
 	return opts, nil
+}
+
+// cudaOptions builds the CUDA EP provider-option map. device_id selects the GPU
+// (default 0; MUONNX_CUDA_DEVICE); gpu_mem_limit caps the arena in bytes
+// (MUONNX_CUDA_MEM_LIMIT — matters on 8–16 GB cards); cudnn_conv_algo_search
+// (EXHAUSTIVE|HEURISTIC|DEFAULT via MUONNX_CUDA_CONV_ALGO) trades first-run
+// autotune for steady-state speed.
+func cudaOptions() map[string]string {
+	o := map[string]string{}
+	dev := os.Getenv("MUONNX_CUDA_DEVICE")
+	if dev == "" {
+		dev = "0"
+	}
+	o["device_id"] = dev
+	if v := os.Getenv("MUONNX_CUDA_MEM_LIMIT"); v != "" {
+		o["gpu_mem_limit"] = v
+	}
+	if v := os.Getenv("MUONNX_CUDA_CONV_ALGO"); v != "" {
+		o["cudnn_conv_algo_search"] = v
+	}
+	return o
 }
 
 // openVINOOptions builds the OpenVINO EP provider-option map. device_type selects
