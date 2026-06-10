@@ -29,7 +29,7 @@ type Part struct {
 	Load muonnx.LoadFunc
 	// Providers is this part's execution-provider preference (e.g. ["coreml"]).
 	// nil/empty uses the environment default. This is the per-graph placement that
-	// makes "encoder on ANE, decoder on CPU" a one-liner.
+	// makes "encoder on CoreML/GPU, decoder on CPU" a one-liner.
 	Providers []string
 	// Inputs/Outputs pin the session's I/O names + order. Leave nil to
 	// auto-discover from the model (fine for simple graphs; pin them when order
@@ -62,56 +62,30 @@ func (m *Multipart) Deps() []muonnx.Node { return nil }
 // execution provider), then registers the model in the catalog. Called once by
 // muonnx.Build / the server.
 //
-// Parts build CONCURRENTLY: their weight loads (often hundreds of MB each) and
-// per-graph ORT init overlap, cutting cold-start wall time to roughly the slowest
-// single part instead of the sum. Session creation is independent per part and
-// ORT-safe; the per-part setup (SessionOptionsFor → Environment/os.Setenv) is
-// internally synchronized.
+// Parts are built SEQUENTIALLY. Building them concurrently overlaps the weight
+// loads and cuts cold start, but it also multiplies PEAK memory: every graph's
+// weights + ORT's per-graph optimization buffers are resident at once (e.g. a
+// three-graph model with ~1.8 GB of fp32 weights can spike to several GB during a
+// concurrent build), which OOM-crashes memory-constrained or contended hosts.
+// Safe parallelism needs the size-aware load throttle noted in onnx.Build's TODO
+// (defer loads that would push resident over the ONNXRuntimeEnvironment cap);
+// until that exists, sequential is the reliable default.
 func (m *Multipart) Build() error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	if m.sessions != nil {
 		return nil // idempotent: matches the build graph's build-once semantics
 	}
-
-	type result struct {
-		key     string
-		sess    *ort.DynamicAdvancedSession
-		in, out []string
-		err     error
-	}
-	results := make([]result, len(m.parts))
-	keys := make([]string, 0, len(m.parts))
-	for key := range m.parts {
-		keys = append(keys, key)
-	}
-	var wg sync.WaitGroup
-	for i, key := range keys {
-		wg.Add(1)
-		go func(i int, key string) {
-			defer wg.Done()
-			sess, in, out, err := buildPart(m.parts[key])
-			results[i] = result{key, sess, in, out, err}
-		}(i, key)
-	}
-	wg.Wait()
-
 	m.sessions = make(map[string]*ort.DynamicAdvancedSession, len(m.parts))
 	m.io = make(map[string][2][]string, len(m.parts))
-	var firstErr error
-	for _, r := range results {
-		if r.err != nil {
-			if firstErr == nil {
-				firstErr = fmt.Errorf("muonnx/model: multipart %q part %q: %w", m.name, r.key, r.err)
-			}
-			continue
+	for key, p := range m.parts {
+		sess, in, out, err := buildPart(p)
+		if err != nil {
+			m.closeLocked() // release any parts that did build before the failure
+			return fmt.Errorf("muonnx/model: multipart %q part %q: %w", m.name, key, err)
 		}
-		m.sessions[r.key] = r.sess
-		m.io[r.key] = [2][]string{r.in, r.out}
-	}
-	if firstErr != nil {
-		m.closeLocked() // release any parts that did build before the failure
-		return firstErr
+		m.sessions[key] = sess
+		m.io[key] = [2][]string{in, out}
 	}
 	muonnx.RegisterModel(&pb.ONNXModel{Name: m.name})
 	return nil

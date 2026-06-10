@@ -27,9 +27,12 @@ func SessionOptions() (*ort.SessionOptions, error) {
 // the implicit fallback). The caller owns the returned options and must Destroy
 // them after creating its session(s).
 //
-// CoreML (Apple ANE/GPU) is appended when "coreml" is requested and the host is
-// darwin; unsupported nodes still fall back to CPU within the session, and
-// non-darwin coreml requests are skipped.
+// CoreML is appended when "coreml" is requested and the host is darwin;
+// unsupported nodes fall back to CPU within the session, and non-darwin coreml
+// requests are skipped. Note (measured on whisper-small's encoder): the speedup
+// is mostly CoreML's MLProgram graph optimization + the GPU — the ANE/NPU
+// contributes little for transformer encoders (CPUAndNeuralEngine ≈ CPUOnly,
+// well behind CPUAndGPU). Default ALL lets CoreML use the GPU.
 func SessionOptionsFor(providers ...string) (*ort.SessionOptions, error) {
 	e := Environment()
 	coreml := e.OS == "darwin" && hasProvider(providers, "coreml")
@@ -68,9 +71,16 @@ func SessionOptionsFor(providers ...string) (*ort.SessionOptions, error) {
 		// misses and recompiles every time. So we pin a stable $TMPDIR co-located
 		// with the cache. Both live under cacheBase() — on the weights volume, not
 		// $HOME — and are treated like derived weight artifacts.
+		// MLComputeUnits selects which silicon CoreML may use: ALL (ANE+GPU+CPU,
+		// the default — CoreML picks per op), CPUAndNeuralEngine (ANE/NPU),
+		// CPUAndGPU, or CPUOnly. Override via MUONNX_COREML_UNITS to pin/measure.
+		units := os.Getenv("MUONNX_COREML_UNITS")
+		if units == "" {
+			units = "ALL"
+		}
 		coremlOpts := map[string]string{
 			"ModelFormat":              "MLProgram",
-			"MLComputeUnits":           "ALL",
+			"MLComputeUnits":           units,
 			"RequireStaticInputShapes": "1",
 		}
 		base := cacheBase()
