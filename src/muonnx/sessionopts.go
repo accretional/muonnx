@@ -50,7 +50,8 @@ func SessionOptionsFor(providers ...string) (*ort.SessionOptions, error) {
 	coreml := e.OS == "darwin" && hasProvider(providers, "coreml")
 	openvino := e.OS == "linux" && hasProvider(providers, "openvino")
 	cuda := e.OS == "linux" && hasProvider(providers, "cuda")
-	if !coreml && !openvino && !cuda && e.IntraOpThreads == 0 && e.InterOpThreads == 0 {
+	gLevel, gSet := graphOptLevel()
+	if !coreml && !openvino && !cuda && !gSet && e.IntraOpThreads == 0 && e.InterOpThreads == 0 {
 		return nil, nil // nothing to configure: use ORT's CPU defaults
 	}
 	opts, err := ort.NewSessionOptions()
@@ -65,6 +66,16 @@ func SessionOptionsFor(providers ...string) (*ort.SessionOptions, error) {
 	}
 	if e.InterOpThreads > 0 {
 		if err := opts.SetInterOpNumThreads(e.InterOpThreads); err != nil {
+			opts.Destroy()
+			return nil, err
+		}
+	}
+	if gSet {
+		// Lower graph-optimization levels cut session-creation time at a possible
+		// small steady-state cost — the lever for cold start (e.g. the t3-llm TTS
+		// model's ~90 s fp16 graph-opt replay). Default (unset) keeps ORT's
+		// ENABLE_ALL. Set via MUONNX_GRAPH_OPT=disable|basic|extended|all.
+		if err := opts.SetGraphOptimizationLevel(gLevel); err != nil {
 			opts.Destroy()
 			return nil, err
 		}
@@ -234,6 +245,23 @@ func absOr(p string) string {
 		return a
 	}
 	return p
+}
+
+// graphOptLevel reads MUONNX_GRAPH_OPT (disable|basic|extended|all) into an ORT
+// graph-optimization level. Returns (level, true) only when set, so the default
+// stays ORT's ENABLE_ALL (highest optimization, slowest load).
+func graphOptLevel() (ort.GraphOptimizationLevel, bool) {
+	switch os.Getenv("MUONNX_GRAPH_OPT") {
+	case "disable", "none":
+		return ort.GraphOptimizationLevelDisableAll, true
+	case "basic":
+		return ort.GraphOptimizationLevelEnableBasic, true
+	case "extended":
+		return ort.GraphOptimizationLevelEnableExtended, true
+	case "all":
+		return ort.GraphOptimizationLevelEnableAll, true
+	}
+	return 0, false
 }
 
 func hasProvider(eps []string, want string) bool {
