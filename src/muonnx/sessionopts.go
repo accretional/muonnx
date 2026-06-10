@@ -1,8 +1,10 @@
 package muonnx
 
 import (
+	"log"
 	"os"
 	"path/filepath"
+	"strconv"
 
 	ort "github.com/yalue/onnxruntime_go"
 )
@@ -33,10 +35,21 @@ func SessionOptions() (*ort.SessionOptions, error) {
 // is mostly CoreML's MLProgram graph optimization + the GPU — the ANE/NPU
 // contributes little for transformer encoders (CPUAndNeuralEngine ≈ CPUOnly,
 // well behind CPUAndGPU). Default ALL lets CoreML use the GPU.
+//
+// OpenVINO is appended when "openvino" is requested and the host is linux. It
+// targets Intel CPU/GPU/NPU (x86) and uses AVX-512/VNNI kernels — the lever for
+// int8/VNNI inference on Intel servers (e.g. Cloud Run). It is BEST-EFFORT: the
+// stock onnxruntime release lacks the OpenVINO EP, so AppendExecutionProviderOpenVINO
+// fails unless the loaded libonnxruntime was built with OpenVINO (Intel's
+// onnxruntime-openvino) and the OpenVINO runtime libs are present; on failure we
+// log and fall back to CPU (OV is a preference, CPU the implicit fallback). Tune
+// via MUONNX_OPENVINO_DEVICE (default CPU), MUONNX_OPENVINO_PRECISION (e.g. FP32/
+// FP16/ACCURACY; omitted → OV default), and the intra-op thread count.
 func SessionOptionsFor(providers ...string) (*ort.SessionOptions, error) {
 	e := Environment()
 	coreml := e.OS == "darwin" && hasProvider(providers, "coreml")
-	if !coreml && e.IntraOpThreads == 0 && e.InterOpThreads == 0 {
+	openvino := e.OS == "linux" && hasProvider(providers, "openvino")
+	if !coreml && !openvino && e.IntraOpThreads == 0 && e.InterOpThreads == 0 {
 		return nil, nil // nothing to configure: use ORT's CPU defaults
 	}
 	opts, err := ort.NewSessionOptions()
@@ -102,7 +115,41 @@ func SessionOptionsFor(providers ...string) (*ort.SessionOptions, error) {
 			return nil, err
 		}
 	}
+	if openvino {
+		// Best-effort: a stock libonnxruntime has no OpenVINO EP, so this errors
+		// unless an OpenVINO-enabled build is loaded. Don't fail the load — log and
+		// leave the session on CPU (OV is a preference; CPU is the fallback).
+		if err := opts.AppendExecutionProviderOpenVINO(openVINOOptions(e)); err != nil {
+			log.Printf("muonnx: OpenVINO EP unavailable (%v); using CPU. "+
+				"Needs an onnxruntime built with OpenVINO + the OpenVINO runtime libs.", err)
+		}
+	}
 	return opts, nil
+}
+
+// openVINOOptions builds the OpenVINO EP provider-option map. device_type selects
+// the Intel target (CPU/GPU/NPU/AUTO; default CPU); precision is optional (OV
+// picks ACCURACY/FP32 if unset); num_of_threads reuses the intra-op thread policy
+// so one knob (MUONNX_INTRA_OP_THREADS) bounds both EPs; cache_dir persists OV's
+// compiled blobs across loads (like the CoreML model cache), co-located with the
+// other derived artifacts under cacheBase().
+func openVINOOptions(e ONNXRuntimeEnvironment) map[string]string {
+	o := map[string]string{}
+	dev := os.Getenv("MUONNX_OPENVINO_DEVICE")
+	if dev == "" {
+		dev = "CPU"
+	}
+	o["device_type"] = dev
+	if p := os.Getenv("MUONNX_OPENVINO_PRECISION"); p != "" {
+		o["precision"] = p
+	}
+	if e.IntraOpThreads > 0 {
+		o["num_of_threads"] = strconv.Itoa(e.IntraOpThreads)
+	}
+	if dir := ensureDir(filepath.Join(cacheBase(), "openvino")); dir != "" {
+		o["cache_dir"] = dir
+	}
+	return o
 }
 
 // CoreMLCacheDir is where compiled CoreML models are persisted across runs (the
