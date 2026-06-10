@@ -1,0 +1,85 @@
+// onnx.proto — muonnx runtime config + gRPC surface.
+//
+// Migrated from accretional/vad's onnx.proto and generalized: precision is split
+// into inference vs serving; the central weight-override location is an
+// ONNXWeightSource (default /onnx) instead of a bare weights_dir; host knobs live
+// in ONNXEnvironmentConfig; the weight server uses a streaming Fetch; and a
+// generic Inference(Tensor) service is provided for simple run-a-model use
+// (cmd/eval validates the runtime through it).
+syntax = "proto3";
+
+package muonnx;
+
+option go_package = "github.com/accretional/muonnx/proto/muonnxpb";
+
+// Precision selects an ONNX weight variant. UNSPECIFIED lets the consumer pick
+// (fp32 for inference — CPU has no native fp16 kernels; fp16 for serving —
+// WebGPU/transformers.js clients prefer it).
+enum Precision {
+  PRECISION_UNSPECIFIED = 0;
+  PRECISION_FP32 = 1;
+  PRECISION_FP16 = 2;
+}
+
+// ONNXWeightSource is where weights are provisioned at instance/container scope —
+// the central dir that overrides (or is the necessary source for) per-package
+// embeds. `path` defaults to /onnx when empty.
+message ONNXWeightSource {
+  string path = 1;
+}
+
+// ONNXModel describes one model variant in the catalog / a fetch request.
+message ONNXModel {
+  string name = 1;
+  string uri = 2;
+  string model_type = 3;
+  Precision precision = 4;
+}
+
+// ONNXRuntimeConfig is the per-server runtime policy: where weights come from and
+// which precision to load vs serve.
+message ONNXRuntimeConfig {
+  repeated ONNXModel models = 1;
+  ONNXWeightSource weight_source = 2;
+  Precision inference_precision = 3;
+  Precision serving_precision = 4;
+}
+
+// ONNXEnvironmentConfig holds host/runtime knobs, separate from per-model policy:
+// the ORT shared library (explicit; else discovered/embedded) and threading /
+// execution-provider preferences.
+message ONNXEnvironmentConfig {
+  string onnxruntime_lib = 1;
+  int32 intra_op_threads = 2;
+  int32 inter_op_threads = 3;
+  repeated string execution_providers = 4; // preference order, e.g. ["coreml","cpu"]
+}
+
+// --- weight server ---------------------------------------------------------
+
+message ONNXRequest {}
+
+message ONNXChunk {
+  bytes content = 1;
+}
+
+// ONNXRuntime serves model weights to external clients (e.g. transformers.js on
+// WebGPU). Fetch streams so it can serve any size at a requested precision.
+service ONNXRuntime {
+  rpc ListModels(ONNXRequest) returns (stream ONNXModel);
+  rpc Fetch(ONNXModel) returns (stream ONNXChunk);
+}
+
+// --- generic inference -----------------------------------------------------
+
+// Tensor is a flat row-major float32 tensor with an explicit shape.
+message Tensor {
+  repeated int64 shape = 1;
+  repeated float data = 2;
+}
+
+// Inference runs a single model (or composite) request→response. muonnx's
+// cmd/eval implements this with mult_0→add_1 to validate the runtime.
+service Inference {
+  rpc Run(Tensor) returns (Tensor);
+}
