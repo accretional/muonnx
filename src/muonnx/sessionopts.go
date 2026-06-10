@@ -173,9 +173,14 @@ func cudaOptions() map[string]string {
 	if v := os.Getenv("MUONNX_CUDA_MEM_LIMIT"); v != "" {
 		o["gpu_mem_limit"] = v
 	}
-	if v := os.Getenv("MUONNX_CUDA_CONV_ALGO"); v != "" {
-		o["cudnn_conv_algo_search"] = v
+	// cudnn_conv_algo_search defaults to EXHAUSTIVE in ORT, which autotunes every
+	// conv at session creation — a big chunk of the slow first-load on conv-heavy
+	// graphs (s3gen vocoder, s3-tokenizer). DEFAULT skips that; override via env.
+	conv := os.Getenv("MUONNX_CUDA_CONV_ALGO")
+	if conv == "" {
+		conv = "DEFAULT"
 	}
+	o["cudnn_conv_algo_search"] = conv
 	return o
 }
 
